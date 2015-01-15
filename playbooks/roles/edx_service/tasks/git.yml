@@ -1,0 +1,48 @@
+- name: check if git repo exists before pruning
+  stat: path={{item.DEST}}/.git
+  register: git_dir_exists
+
+- name: git prune before checking out
+  shell: cd {{ item.DEST }} && git remote prune origin
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+    - restart {{edx_service_name}}
+  when: >
+    (git_dir_exists.stat.exists) and 
+    (git_dir_exists.stat.isdir is defined) and
+    git_dir_exists.stat.isdir
+
+
+- name: validate GIT.PROTOCOL
+  fail: msg='GIT.PROTOCOL must be "https" or "git"'
+  when: (item.PROTOCOL != https) and (item.PROTOCOL != git)
+
+- name: set https url
+  command: echo "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
+  register: repo_url
+  when: item.PROTOCOL == "https"
+
+- name: set ssh url
+  command: echo "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
+  register: repo_url
+  when: item.PROTOCOL == "ssh"
+
+- name: checkout code
+  git: >
+    repo={{repo_url.stdout}}
+    dest={{ item.DEST }}  version={{ item.VERSION }}
+    accept_hostkey=yes key_file={{ edx_notes_api_home }}/.ssh/id_rsa
+  sudo_user: "{{ edx_role_name }}"
+  register: "{{edx_service_name}}_code_checkout"
+
+
+- name: get instance information
+  action: ec2_facts
+
+- name: tag instance
+  ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
+  args:
+    tags:
+      "version:{{edx_service_name}}" : "{{ repo_url.stdout }} {{ insights_code_checkout.after |truncate(7,True,'')}}"
+      #TODO: WTF is the .after crap? ^^
+  when: "{{edx_service_name}}.after" is defined

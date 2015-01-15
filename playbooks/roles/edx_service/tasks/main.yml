@@ -76,7 +76,7 @@
   tags:
     - deploy
   when: edx_service_config is defined
-    
+
 # Replace dashes with underscores to support roles that use
 # dashes (the role vars will contain underscores)
 - name: install a bunch of system packages on which edx_service relies
@@ -88,3 +88,7 @@
   yum: pkg={{ item }} state=present
   with_items: "{{ edx_service_name.replace('-', '_') }}_redhat_pkgs"
   when: ansible_distribution in common_redhat_variants
+
+- name: do git things
+  include: git item=item
+  with_items: edx_service_config.GIT

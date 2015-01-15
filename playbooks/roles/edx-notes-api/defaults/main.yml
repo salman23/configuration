@@ -11,7 +11,6 @@
 # Defaults for role edx-notes-api
 # 
 
-EDX_NOTES_API_VERSION: "master"
 EDX_NOTES_API_GUNICORN_WORKERS_EXTRA: ""
 EDX_NOTES_API_WORKERS_EXTRA_CONF: ""
 EDX_NOTES_API_LANG: "en-us"
@@ -39,7 +38,7 @@ EDX_NOTES_API_DATABASES:
     PORT: 3306
 EDX_NOTES_API_ALLOWED_HOSTS:
   - "localhost"
-    
+
 #
 # This data structure will be written out to yaml configuration file
 # in /edx/etc
@@ -65,7 +64,14 @@ edx_notes_api_service_config:
       ENGINE: 'notesserver.highlight.ElasticsearchSearchEngine'
       URL: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
       INDEX_NAME: '{{ EDX_NOTES_API_DATASTORE_NAME }}'
-  DISABLE_TOKEN_CHECK: True  
+  DISABLE_TOKEN_CHECK: True
+  GIT:
+    - PROTOCOL: "{{COMMON_GIT_PROTOCOL}}"
+      DOMAIN: "{{COMMON_GIT_MIRROR}}"
+      PATH: "{{COMMON_GIT_PATH}}"
+      REPO: "edx_notes_api.git"
+      VERSION: "e0d/migration-overrides"
+      DESTINATION: "{{ edx_notes_api_app_dir }}/edx-notes-api"
 #
 # vars are namespace with the module name.
 #
@@ -82,7 +88,6 @@ edx_notes_api_home: "{{ COMMON_APP_DIR }}/{{ edx_notes_api_service_name }}"
 edx_notes_api_venv_base: "{{ edx_notes_api_home }}/venvs"
 edx_notes_api_venv_dir: "{{ edx_notes_api_venv_base }}/{{ edx_notes_api_service_name }}"
 edx_notes_api_venv_bin: "{{ edx_notes_api_venv_dir }}/bin"
-edx_notes_api_code_dir: "{{ edx_notes_api_app_dir }}/edx-notes-api"
 edx_notes_api_python_path: "{{ edx_notes_api_code_dir }}/edx-notes-api"
 edx_notes_api_conf_dir: "{{ edx_notes_api_home }}"
 edx_notes_api_log_dir: "{{ COMMON_LOG_DIR }}/{{ edx_notes_api_service_name }}"
