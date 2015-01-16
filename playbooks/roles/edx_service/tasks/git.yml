@@ -17,19 +17,9 @@
   fail: msg='GIT.PROTOCOL must be "https" or "git"'
   when: (item.PROTOCOL != https) and (item.PROTOCOL != git)
 
-- name: set https url
-  command: echo "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
-  register: repo_url
-  when: item.PROTOCOL == "https"
-
-- name: set ssh url
-  command: echo "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
-  register: repo_url
-  when: item.PROTOCOL == "ssh"
-
 - name: checkout code
   git: >
-    repo={{repo_url.stdout}}
+    repo={{ "%s{{item.DOMAIN}}%s{{item.PATH}}/{{item.REPO}}" | format(*["https://", "/"] if item.PROTOCOL=="https" else *["git@", ":"]) }}
     dest={{ item.DEST }}  version={{ item.VERSION }}
     accept_hostkey=yes key_file={{ edx_notes_api_home }}/.ssh/id_rsa
   sudo_user: "{{ edx_role_name }}"
@@ -38,11 +28,11 @@
 
 - name: get instance information
   action: ec2_facts
+  #old syntax
 
 - name: tag instance
   ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
   args:
     tags:
-      "version:{{edx_service_name}}" : "{{ repo_url.stdout }} {{ insights_code_checkout.after |truncate(7,True,'')}}"
-      #TODO: WTF is the .after crap? ^^
-  when: "{{edx_service_name}}.after" is defined
+      "version:{{edx_service_name}}" : "{{item.DOMAIN}}/{{item.PATH}}/{{item.REPO}} {{ {{edx_service_name}}_code_checkout.after |truncate(7,True,'')}}"
+  when: "{{edx_service_name}}_code_checkout.after" is defined
